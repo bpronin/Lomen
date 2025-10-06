@@ -14,13 +14,10 @@ namespace Lomen
 
         private static void Run(Options options)
         {
-            if (options.RightColor != null ||
-                options.CenterColor != null ||
-                options.LeftColor != null ||
-                options.GameColor != null ||
-                options.AllColors != null)
-                SetColors(options.RightColor, options.CenterColor, options.LeftColor, options.GameColor,
-                    options.AllColors);
+            if (options.RightColor != null || options.CenterColor != null || options.LeftColor != null ||
+                options.GameColor != null || options.AllColors != null)
+                SetColors(options.RightColor, options.CenterColor, options.LeftColor,
+                    options.GameColor, options.AllColors);
 
             if (options.Info) ShowStatus();
         }
