@@ -2,27 +2,6 @@
 use std::error;
 use wmi::{COMLibrary, IWbemClassWrapper, Variant, WMIConnection};
 
-// fn print_object(object: &IWbemClassWrapper) -> Result<(), Box<dyn Error>> {
-//     let in_data_props = object.list_properties()?;
-//     println!("{:?}", object);
-//     for prop_name in in_data_props {
-//         let prop = object.get_property(&prop_name)?;
-//         println!("{prop_name}: {:?}", prop);
-//     }
-//
-//     Ok(())
-// }
-
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// pub enum KbdType {
-//     Normal,
-//     WithNumpad,
-//     WithoutNumpad,
-//     Rgb,
-//     OneZoneWithNumpad,
-//     OneZoneWithoutNumpad,
-// }
-
 static SIGN: [u8; 4] = [83, 69, 67, 85];
 
 /* Command constants */
@@ -33,29 +12,30 @@ const CMD_GAMING: u32 = 131080;
 const CMD_TYPE_GET_PLATFORM_INFO: u32 = 1;
 const CMD_TYPE_GET_ZONE_COLORS: u32 = 2;
 const CMD_TYPE_SET_ZONE_COLORS: u32 = 3;
-const CMD_TYPE_STATUS: u32 = 4;
-const CMD_TYPE_SET_BRIGHTNESS: u32 = 5;
-const CMD_TYPE_SET_LIGHT_BAR_COLORS: u32 = 11;
+// const CMD_TYPE_STATUS: u32 = 4;
+// const CMD_TYPE_SET_BRIGHTNESS: u32 = 5;
+// const CMD_TYPE_SET_LIGHT_BAR_COLORS: u32 = 11;
 const CMD_TYPE_GET_KEYBOARD_TYPE: u32 = 43;
 
-/* Lighting levels */
-pub const LIGHTING_LEVEL_ON: u8 = 228;
-pub const LIGHTING_LEVEL_OFF: u8 = 100;
+// /* Lighting levels */
+// const LIGHTING_LEVEL_ON: u8 = 228;
+// const LIGHTING_LEVEL_OFF: u8 = 100;
 
 /* Zone indices */
-pub const RIGHT_ZONE_INDEX: i32 = 0;
-pub const CENTER_ZONE_INDEX: i32 = 1;
-pub const LEFT_ZONE_INDEX: i32 = 2;
-pub const GAME_ZONE_INDEX: i32 = 3;
+const RIGHT_ZONE_INDEX: usize = 0;
+const CENTER_ZONE_INDEX: usize = 1;
+const LEFT_ZONE_INDEX: usize = 2;
+const GAME_ZONE_INDEX: usize = 3;
 
-/* Offset for color data in command buffer */
-pub const COLORS_DATA_OFFSET: i32 = 25;
-
-fn vec_to_variant(data: Vec<u8>) -> Variant {
-    Variant::Array(data.into_iter().map(Variant::UI1).collect())
+fn zone_color_offset(zone_index: usize) -> usize {
+    25 + zone_index * 3
 }
 
-pub fn variant_to_vec(v: Variant) -> Result<Vec<u8>, Box<dyn Error>> {
+fn bytes_to_variant(bytes: &[u8]) -> Variant {
+    Variant::Array(bytes.iter().copied().map(Variant::UI1).collect())
+}
+
+fn variant_to_bytes(v: Variant) -> Result<Vec<u8>, Box<dyn Error>> {
     match v {
         Variant::Array(vec) => {
             let mut out = Vec::with_capacity(vec.len());
@@ -75,19 +55,46 @@ pub fn variant_to_vec(v: Variant) -> Result<Vec<u8>, Box<dyn Error>> {
     }
 }
 
-fn execute_command(
+fn get_zone_color(data: &[u8], zone_index: usize) -> Color {
+    let offset = zone_color_offset(zone_index);
+    Color {
+        red: data[offset],
+        green: data[offset + 1],
+        blue: data[offset + 2],
+    }
+}
+
+fn set_zone_color(data: &mut [u8], zone_index: usize, color: Option<Color>) {
+    if let Some(c) = color {
+        let offset = zone_color_offset(zone_index);
+
+        data[offset] = c.red;
+        data[offset + 1] = c.green;
+        data[offset + 2] = c.blue;
+    }
+}
+
+fn execute_wmi_command(
     command_code: u32,
     command_type: u32,
-    data: Option<Vec<u8>>,
+    data: Option<&[u8]>,
 ) -> Result<Vec<u8>, Box<dyn Error>> {
     let wmi_con = WMIConnection::with_namespace_path(r"root\wmi", COMLibrary::new()?)?;
 
+    let (payload, payload_size) = match data {
+        Some(d) => {
+            let i = d.len() as u32;
+            (bytes_to_variant(d.into()), i)
+        }
+        None => (Variant::Null, 0u32),
+    };
+
     let in_data = wmi_con.get_object("hpqBDataIn")?;
-    in_data.put_property("Sign", vec_to_variant(SIGN.to_vec()))?;
+    in_data.put_property("Sign", bytes_to_variant(&SIGN))?;
     in_data.put_property("Command", Variant::UI4(command_code))?;
     in_data.put_property("CommandType", Variant::UI4(command_type))?;
-    in_data.put_property("Size", Variant::UI4(0))?;
-    in_data.put_property("hpqBData", Variant::Null)?;
+    in_data.put_property("Size", Variant::UI4(payload_size))?;
+    in_data.put_property("hpqBData", payload)?;
 
     let in_params = wmi_con
         .get_object("hpqBIntM")?
@@ -105,18 +112,76 @@ fn execute_command(
         .unwrap();
 
     let out_data: IWbemClassWrapper = out_params.get_property("OutData")?.try_into()?;
-    // let returnCode = out_data.get_property("rwReturnCode")?;
 
-    Ok(variant_to_vec(out_data.get_property("Data")?)?)
+    let return_code: u32 = out_data.get_property("rwReturnCode")?.try_into()?;
+    if return_code != 0 {
+        return Err(format!("Invalid return code: {}", return_code).into());
+    }
+
+    Ok(variant_to_bytes(out_data.get_property("Data")?)?)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Color {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ZoneColors {
+    pub right: Option<Color>,
+    pub center: Option<Color>,
+    pub left: Option<Color>,
+    pub game: Option<Color>,
+}
+
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub enum KbdType {
+//     Normal,
+//     WithNumpad,
+//     WithoutNumpad,
+//     Rgb,
+//     OneZoneWithNumpad,
+//     OneZoneWithoutNumpad,
+// }
+
+/// Returns keyboard type
 pub fn get_keyboard_type() -> Result<u8, Box<dyn Error>> {
-    let result = execute_command(CMD_GAMING, CMD_TYPE_GET_KEYBOARD_TYPE, None)?;
-    Ok(result[0])
+    let data = execute_wmi_command(CMD_GAMING, CMD_TYPE_GET_KEYBOARD_TYPE, None)?;
+    Ok(data[0])
 }
 
 /// Checks whether keyboard lighting is supported
 pub fn is_lighting_supported() -> Result<bool, Box<dyn Error>> {
-    let result = execute_command(CMD_COMMON, CMD_TYPE_GET_PLATFORM_INFO, None)?;
-    Ok((result[0] & 1) == 1)
+    let data = execute_wmi_command(CMD_COMMON, CMD_TYPE_GET_PLATFORM_INFO, None)?;
+    Ok((data[0] & 1) == 1)
+}
+
+/// Returns current keyboard lighting colors
+pub fn get_colors() -> Result<ZoneColors, Box<dyn Error>> {
+    let result = execute_wmi_command(CMD_COMMON, CMD_TYPE_GET_ZONE_COLORS, None)?;
+    let data = result.as_ref();
+
+    Ok(ZoneColors {
+        right: get_zone_color(data, RIGHT_ZONE_INDEX).into(),
+        center: get_zone_color(data, CENTER_ZONE_INDEX).into(),
+        left: get_zone_color(data, LEFT_ZONE_INDEX).into(),
+        game: get_zone_color(data, GAME_ZONE_INDEX).into(),
+    })
+}
+
+/// Sets keyboard lighting colors
+pub fn set_colors(colors: ZoneColors) -> Result<(), Box<dyn Error>> {
+    let mut result = execute_wmi_command(CMD_COMMON, CMD_TYPE_GET_ZONE_COLORS, None)?;
+    let data = result.as_mut();
+
+    set_zone_color(data, RIGHT_ZONE_INDEX, colors.right);
+    set_zone_color(data, CENTER_ZONE_INDEX, colors.center);
+    set_zone_color(data, LEFT_ZONE_INDEX, colors.left);
+    set_zone_color(data, GAME_ZONE_INDEX, colors.game);
+
+    execute_wmi_command(CMD_COMMON, CMD_TYPE_SET_ZONE_COLORS, Some(data))?;
+
+    Ok(())
 }
