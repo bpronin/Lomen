@@ -1,5 +1,6 @@
 ﻿use error::Error;
 use std::error;
+use std::str::FromStr;
 use wmi::{COMLibrary, IWbemClassWrapper, Variant, WMIConnection};
 
 static SIGN: [u8; 4] = [83, 69, 67, 85];
@@ -58,9 +59,9 @@ fn variant_to_bytes(v: Variant) -> Result<Vec<u8>, Box<dyn Error>> {
 fn get_zone_color(data: &[u8], zone_index: usize) -> Color {
     let offset = zone_color_offset(zone_index);
     Color {
-        red: data[offset],
-        green: data[offset + 1],
-        blue: data[offset + 2],
+        r: data[offset],
+        g: data[offset + 1],
+        b: data[offset + 2],
     }
 }
 
@@ -68,9 +69,9 @@ fn set_zone_color(data: &mut [u8], zone_index: usize, color: Option<Color>) {
     if let Some(c) = color {
         let offset = zone_color_offset(zone_index);
 
-        data[offset] = c.red;
-        data[offset + 1] = c.green;
-        data[offset + 2] = c.blue;
+        data[offset] = c.r;
+        data[offset + 1] = c.g;
+        data[offset + 2] = c.b;
     }
 }
 
@@ -123,12 +124,34 @@ fn execute_wmi_command(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
-    pub red: u8,
-    pub green: u8,
-    pub blue: u8,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+impl Default for Color {
+    fn default() -> Self {
+        Self { r: 0, g: 0, b: 0 }
+    }
+}
+
+impl FromStr for Color {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.strip_prefix('#').unwrap_or(s);
+        if s.len() != 6 {
+            return Err("Hex string must be 6 characters long".into());
+        }
+        Ok(Self {
+            r: u8::from_str_radix(&s[0..2], 16).map_err(|e| format!("{}", e))?,
+            g: u8::from_str_radix(&s[2..4], 16).map_err(|e| format!("{}", e))?,
+            b: u8::from_str_radix(&s[4..6], 16).map_err(|e| format!("{}", e))?,
+        })
+    }
+}
+
+#[derive(Debug)]
 pub struct ZoneColors {
     pub right: Option<Color>,
     pub center: Option<Color>,
