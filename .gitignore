@@ -1,1 +1,3 @@
-/target
+﻿/target/
+/lomen-lib/target/
+/lomen-cli/target/

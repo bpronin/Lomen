@@ -1,0 +1,11 @@
+[package]
+name = "lomen-lib"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "lomen"
+crate-type = ["cdylib"]
+
+[dependencies]
+wmi = "0.17.3"

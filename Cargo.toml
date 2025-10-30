@@ -1,11 +1,3 @@
-[package]
-name = "lomen"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-wmi = "0.17.3"
-argh = "0.1"
-
-[build-dependencies]
-embed-manifest = "1.3.1" # for admin rights elevation. see build.rs
+[workspace]
+members = ["lomen-lib", "lomen-cli"]
+resolver = "3"

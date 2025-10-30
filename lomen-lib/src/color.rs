@@ -1,7 +1,6 @@
 ﻿use fmt::Display;
 use std::fmt;
 use std::fmt::Formatter;
-use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
@@ -11,7 +10,7 @@ pub struct Color {
 }
 
 impl Color {
-    pub(crate) fn new(r: u8, g: u8, b: u8) -> Self {
+    pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
     }
 }
@@ -22,25 +21,25 @@ impl Default for Color {
     }
 }
 
-impl FromStr for Color {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.strip_prefix('#').unwrap_or(s);
-        if s.len() != 6 {
-            return Err("Hex string must be 6 characters long".into());
-        }
-        Ok(Self {
-            r: u8::from_str_radix(&s[0..2], 16).map_err(|e| format!("{}", e))?,
-            g: u8::from_str_radix(&s[2..4], 16).map_err(|e| format!("{}", e))?,
-            b: u8::from_str_radix(&s[4..6], 16).map_err(|e| format!("{}", e))?,
-        })
-    }
-}
-
 impl Display for Color {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b))
+    }
+}
+
+impl Into<u64> for Color {
+    fn into(self) -> u64 {
+        let mut c: u64 = 0;
+        c = (c << 8) | self.r as u64;
+        c = (c << 8) | self.g as u64;
+        c = (c << 8) | self.b as u64;
+        c
+    }
+}
+
+impl From<u64> for Color {
+    fn from(value: u64) -> Self {
+        Self::new((value >> 16) as u8, (value >> 8) as u8, value as u8)
     }
 }
 
@@ -76,10 +75,10 @@ mod test {
     #[test]
     fn test_zone_colors_fmt() {
         let z = ZoneColors {
-            right: Color::from_str("#AA0000").ok(),
-            center: Color::from_str("#BB0000").ok(),
-            left: Color::from_str("#CC0000").ok(),
-            game: Color::from_str("#DD0000").ok(),
+            right: Color::from(0xAA0000).into(),
+            center: Color::from(0xBB0000).into(),
+            left: Color::from(0xCC0000).into(),
+            game: Color::from(0xDD0000).into(),
         };
         assert_eq!(
             format!("{}", z),
@@ -88,14 +87,14 @@ mod test {
     }
 
     #[test]
-    fn test_from_str() {
-        assert_eq!(
-            Color::new(0xAA, 0xBB, 0xCC),
-            Color::from_str("#AABBCC").unwrap()
-        );
-        assert_eq!(
-            Color::new(0xAA, 0xBB, 0xCC),
-            Color::from_str("AABBCC").unwrap()
-        );
+    fn test_into() {
+        let c: u64 = Color::new(0xAA, 0xBB, 0xCC).into();
+        assert_eq!(c, 0x00AABBCC);
+    }
+
+    #[test]
+    fn test_from() {
+        let c: Color = Color::from(0x00AABBCC);
+        assert_eq!(c, Color::new(0xAA, 0xBB, 0xCC));
     }
 }

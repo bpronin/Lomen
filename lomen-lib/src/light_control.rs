@@ -175,7 +175,6 @@ pub fn set_colors(colors: ZoneColors) -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::str::FromStr;
 
     #[test]
     fn test_is_lighting_supported() {
@@ -204,9 +203,9 @@ mod test {
     #[test]
     fn test_set_colors() {
         let colors = ZoneColors {
-            right: Color::from_str("#FFFF00").ok(),
-            center: Some(Color::default()),
-            left: Color::from_str("#00FF00").ok(),
+            right: Color::from(0xFFFF00).into(),
+            center: Color::default().into(),
+            left: Color::from(0x00FF00).into(),
             game: None,
         };
         let result = set_colors(colors);
