@@ -28,11 +28,6 @@ const CENTER_ZONE_INDEX: usize = 1;
 const LEFT_ZONE_INDEX: usize = 2;
 const GAME_ZONE_INDEX: usize = 3;
 
-fn rgb_offsets(zone_index: usize) -> (usize, usize, usize) {
-    let offset = 25 + zone_index * 3;
-    (offset, offset + 1, offset + 2)
-}
-
 fn bytes_to_variant(bytes: &[u8]) -> Variant {
     Variant::Array(bytes.iter().copied().map(Variant::UI1).collect())
 }
@@ -57,6 +52,11 @@ fn variant_to_bytes(v: Variant) -> Result<Vec<u8>, Box<dyn Error>> {
     }
 }
 
+fn rgb_offsets(zone_index: usize) -> (usize, usize, usize) {
+    let offset = 25 + zone_index * 3;
+    (offset, offset + 1, offset + 2)
+}
+
 fn get_zone_color(data: &[u8], zone_index: usize) -> Color {
     let (ri, gi, bi) = rgb_offsets(zone_index);
     Color::new(data[ri], data[gi], data[bi])
@@ -71,13 +71,27 @@ fn set_zone_color(data: &mut [u8], zone_index: usize, color: Option<Color>) {
     }
 }
 
+thread_local! {
+    static COM_LIB: COMLibrary = COMLibrary::new().unwrap();
+}
+
 fn execute_wmi_command(
     command_code: u32,
     command_type: u32,
     data: Option<&[u8]>,
 ) -> Result<Vec<u8>, Box<dyn Error>> {
-    let wmi_con = WMIConnection::with_namespace_path(r"root\wmi", COMLibrary::new()?)?;
+    COM_LIB.with(|com| {
+        let wmi_con = WMIConnection::with_namespace_path(r"root\wmi", *com)?;
+        _execute_wmi_command(wmi_con, command_code, command_type, data)
+    })
+}
 
+fn _execute_wmi_command(
+    wmi_con: WMIConnection,
+    command_code: u32,
+    command_type: u32,
+    data: Option<&[u8]>,
+) -> Result<Vec<u8>, Box<dyn Error>> {
     let (payload, payload_size) = match data {
         Some(d) => {
             let i = d.len() as u32;
