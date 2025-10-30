@@ -64,30 +64,38 @@ impl Display for ZoneColors {
     }
 }
 
-#[test]
-fn test_color_fmt() {
-    assert_eq!(format!("{}", Color::new(0xAA, 0xBB, 0xCC)), "#AABBCC");
-}
+#[cfg(test)]
+mod test {
+    use super::*;
 
-#[test]
-fn test_zone_colors_fmt() {
-    let z = ZoneColors {
-        right: Color::from_str("#AA0000").ok(),
-        center: Color::from_str("#BB0000").ok(),
-        left: Color::from_str("#CC0000").ok(),
-        game: Color::from_str("#DD0000").ok(),
-    };
-    assert_eq!(format!("{}", z), "R: #AA0000, C: #BB0000, L: #CC0000, G: #DD0000");
-}
+    #[test]
+    fn test_color_fmt() {
+        assert_eq!(format!("{}", Color::new(0xAA, 0xBB, 0xCC)), "#AABBCC");
+    }
 
-#[test]
-fn test_from_str() {
-    assert_eq!(
-        Color::new(0xAA, 0xBB, 0xCC),
-        Color::from_str("#AABBCC").unwrap()
-    );
-    assert_eq!(
-        Color::new(0xAA, 0xBB, 0xCC),
-        Color::from_str("AABBCC").unwrap()
-    );
+    #[test]
+    fn test_zone_colors_fmt() {
+        let z = ZoneColors {
+            right: Color::from_str("#AA0000").ok(),
+            center: Color::from_str("#BB0000").ok(),
+            left: Color::from_str("#CC0000").ok(),
+            game: Color::from_str("#DD0000").ok(),
+        };
+        assert_eq!(
+            format!("{}", z),
+            "R: #AA0000, C: #BB0000, L: #CC0000, G: #DD0000"
+        );
+    }
+
+    #[test]
+    fn test_from_str() {
+        assert_eq!(
+            Color::new(0xAA, 0xBB, 0xCC),
+            Color::from_str("#AABBCC").unwrap()
+        );
+        assert_eq!(
+            Color::new(0xAA, 0xBB, 0xCC),
+            Color::from_str("AABBCC").unwrap()
+        );
+    }
 }

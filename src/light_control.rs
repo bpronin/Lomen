@@ -158,40 +158,44 @@ pub fn set_colors(colors: ZoneColors) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-use std::str::FromStr;
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::str::FromStr;
 
-#[test]
-fn test_is_lighting_supported() {
-    let result = is_lighting_supported();
-    assert!(result.is_ok());
+    #[test]
+    fn test_is_lighting_supported() {
+        let result = is_lighting_supported();
+        assert!(result.is_ok());
 
-    println!("Lighting supported: {}", result.unwrap());
-}
+        println!("Lighting supported: {}", result.unwrap());
+    }
 
-#[test]
-fn test_get_keyboard_type() {
-    let result = get_keyboard_type();
-    assert!(result.is_ok());
+    #[test]
+    fn test_get_keyboard_type() {
+        let result = get_keyboard_type();
+        assert!(result.is_ok());
 
-    println!("Keyboard type: {}", result.unwrap());
-}
+        println!("Keyboard type: {}", result.unwrap());
+    }
 
-#[test]
-fn test_get_colors() {
-    let result = get_colors();
-    assert!(result.is_ok());
+    #[test]
+    fn test_get_colors() {
+        let result = get_colors();
+        assert!(result.is_ok());
 
-    println!("Colors: {}", result.unwrap());
-}
+        println!("Colors: {}", result.unwrap());
+    }
 
-#[test]
-fn test_set_colors() {
-    let colors = ZoneColors {
-        right: Color::from_str("#FFFF00").ok(),
-        center: Some(Color::default()),
-        left: Color::from_str("#00FF00").ok(),
-        game: None,
-    };
-    let result = set_colors(colors);
-    assert!(result.is_ok());
+    #[test]
+    fn test_set_colors() {
+        let colors = ZoneColors {
+            right: Color::from_str("#FFFF00").ok(),
+            center: Some(Color::default()),
+            left: Color::from_str("#00FF00").ok(),
+            game: None,
+        };
+        let result = set_colors(colors);
+        assert!(result.is_ok());
+    }
 }
