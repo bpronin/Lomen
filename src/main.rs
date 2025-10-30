@@ -5,30 +5,32 @@ use color::{Color, ZoneColors};
 mod color;
 mod light_control;
 
-/// A tool to control keyboard lighting of HP OMEN laptops
+/// A tool to control keyboard lighting of HP OMEN laptops.
+/// Use 6-digits RGB hex codes for colors (e.g. #FF00FF).
+/// In PowerShell use color codes without '#' symbol or enquote them (e.g. FF00FF or "#FF00FF")
 #[derive(FromArgs)]
 struct Args {
-    /// displays keyboard lighting status information
+    /// display keyboard lighting status information
     #[argh(switch, short = 'i')]
     info: bool,
 
-    /// sets color for the first (right) zone of the keyboard in hex format
-    #[argh(option, short = '1')]
+    /// set color for the first (right) zone of the keyboard
+    #[argh(option, short = 'r')]
     right: Option<Color>,
 
-    /// sets color for the second (center) zone of the keyboard in hex format
-    #[argh(option, short = '2')]
+    /// set color for the second (center) zone of the keyboard
+    #[argh(option, short = 'c')]
     center: Option<Color>,
 
-    /// sets color for the third (left) zone of the keyboard in hex format
-    #[argh(option, short = '3')]
+    /// set color for the third (left) zone of the keyboard
+    #[argh(option, short = 'l')]
     left: Option<Color>,
 
-    /// sets color for the forth (game) zone of the keyboard in hex format
-    #[argh(option, short = '4')]
+    /// set color for the forth (game) zone of the keyboard
+    #[argh(option, short = 'g')]
     game: Option<Color>,
 
-    /// sets color for all zones of the keyboard except those specified specifically in hex format
+    /// set color for all zones of the keyboard except those specified specifically
     #[argh(option, short = 'a')]
     all: Option<Color>,
 }
