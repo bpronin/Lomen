@@ -1,8 +1,10 @@
-use crate::kbd_light_control::{get_colors, get_keyboard_type, is_lighting_supported, set_colors, Color, ZoneColors};
+use crate::light_control::{get_colors, get_keyboard_type, is_lighting_supported, set_colors};
 use argh::FromArgs;
 use std::str::FromStr;
+use color::{Color, ZoneColors};
 
-mod kbd_light_control;
+mod light_control;
+mod color;
 
 /// A tool to control keyboard lighting of HP OMEN laptops
 #[derive(FromArgs)]

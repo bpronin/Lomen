@@ -1,6 +1,6 @@
-﻿use error::Error;
+﻿use crate::color::{Color, ZoneColors};
+use error::Error;
 use std::error;
-use std::str::FromStr;
 use wmi::{COMLibrary, IWbemClassWrapper, Variant, WMIConnection};
 
 static SIGN: [u8; 4] = [83, 69, 67, 85];
@@ -28,8 +28,9 @@ const CENTER_ZONE_INDEX: usize = 1;
 const LEFT_ZONE_INDEX: usize = 2;
 const GAME_ZONE_INDEX: usize = 3;
 
-fn zone_color_offset(zone_index: usize) -> usize {
-    25 + zone_index * 3
+fn rgb_offsets(zone_index: usize) -> (usize, usize, usize) {
+    let offset = 25 + zone_index * 3;
+    (offset, offset + 1, offset + 2)
 }
 
 fn bytes_to_variant(bytes: &[u8]) -> Variant {
@@ -57,21 +58,16 @@ fn variant_to_bytes(v: Variant) -> Result<Vec<u8>, Box<dyn Error>> {
 }
 
 fn get_zone_color(data: &[u8], zone_index: usize) -> Color {
-    let offset = zone_color_offset(zone_index);
-    Color {
-        r: data[offset],
-        g: data[offset + 1],
-        b: data[offset + 2],
-    }
+    let (ri, gi, bi) = rgb_offsets(zone_index);
+    Color::new(data[ri], data[gi], data[bi])
 }
 
 fn set_zone_color(data: &mut [u8], zone_index: usize, color: Option<Color>) {
     if let Some(c) = color {
-        let offset = zone_color_offset(zone_index);
-
-        data[offset] = c.r;
-        data[offset + 1] = c.g;
-        data[offset + 2] = c.b;
+        let (ri, gi, bi) = rgb_offsets(zone_index);
+        data[ri] = c.r;
+        data[gi] = c.g;
+        data[bi] = c.b;
     }
 }
 
@@ -122,53 +118,6 @@ fn execute_wmi_command(
     Ok(variant_to_bytes(out_data.get_property("Data")?)?)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Color {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-}
-
-impl Default for Color {
-    fn default() -> Self {
-        Self { r: 0, g: 0, b: 0 }
-    }
-}
-
-impl FromStr for Color {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.strip_prefix('#').unwrap_or(s);
-        if s.len() != 6 {
-            return Err("Hex string must be 6 characters long".into());
-        }
-        Ok(Self {
-            r: u8::from_str_radix(&s[0..2], 16).map_err(|e| format!("{}", e))?,
-            g: u8::from_str_radix(&s[2..4], 16).map_err(|e| format!("{}", e))?,
-            b: u8::from_str_radix(&s[4..6], 16).map_err(|e| format!("{}", e))?,
-        })
-    }
-}
-
-#[derive(Debug)]
-pub struct ZoneColors {
-    pub right: Option<Color>,
-    pub center: Option<Color>,
-    pub left: Option<Color>,
-    pub game: Option<Color>,
-}
-
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// pub enum KbdType {
-//     Normal,
-//     WithNumpad,
-//     WithoutNumpad,
-//     Rgb,
-//     OneZoneWithNumpad,
-//     OneZoneWithoutNumpad,
-// }
-
 /// Returns keyboard type
 pub fn get_keyboard_type() -> Result<u8, Box<dyn Error>> {
     let data = execute_wmi_command(CMD_GAMING, CMD_TYPE_GET_KEYBOARD_TYPE, None)?;
@@ -207,4 +156,42 @@ pub fn set_colors(colors: ZoneColors) -> Result<(), Box<dyn Error>> {
     execute_wmi_command(CMD_COMMON, CMD_TYPE_SET_ZONE_COLORS, Some(data))?;
 
     Ok(())
+}
+
+use std::str::FromStr;
+
+#[test]
+fn test_is_lighting_supported() {
+    let result = is_lighting_supported();
+    assert!(result.is_ok());
+
+    println!("Lighting supported: {}", result.unwrap());
+}
+
+#[test]
+fn test_get_keyboard_type() {
+    let result = get_keyboard_type();
+    assert!(result.is_ok());
+
+    println!("Keyboard type: {}", result.unwrap());
+}
+
+#[test]
+fn test_get_colors() {
+    let result = get_colors();
+    assert!(result.is_ok());
+
+    println!("Colors: {}", result.unwrap());
+}
+
+#[test]
+fn test_set_colors() {
+    let colors = ZoneColors {
+        right: Color::from_str("#FFFF00").ok(),
+        center: Some(Color::default()),
+        left: Color::from_str("#00FF00").ok(),
+        game: None,
+    };
+    let result = set_colors(colors);
+    assert!(result.is_ok());
 }
