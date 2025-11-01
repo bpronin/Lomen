@@ -259,6 +259,7 @@ dependencies = [
 name = "lomen-lib"
 version = "0.1.0"
 dependencies = [
+ "windows",
  "wmi",
 ]
 

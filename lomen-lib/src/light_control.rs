@@ -1,7 +1,8 @@
 ﻿use crate::color::{Color, ZoneColors};
 use error::Error;
 use std::error;
-use wmi::{COMLibrary, IWbemClassWrapper, Variant, WMIConnection};
+use windows::Win32::Foundation::RPC_E_CHANGED_MODE;
+use wmi::{COMLibrary, IWbemClassWrapper, Variant, WMIConnection, WMIError};
 
 static SIGN: [u8; 4] = [83, 69, 67, 85];
 
@@ -27,6 +28,18 @@ const RIGHT_ZONE_INDEX: usize = 0;
 const CENTER_ZONE_INDEX: usize = 1;
 const LEFT_ZONE_INDEX: usize = 2;
 const GAME_ZONE_INDEX: usize = 3;
+
+/// Some processes calling the dll may already initialize COM.
+fn safe_com_init() -> COMLibrary {
+    COMLibrary::new().unwrap_or_else(|error| {
+        if let WMIError::HResultError { hres } = error {
+            if hres == RPC_E_CHANGED_MODE.0 {
+                return unsafe { COMLibrary::assume_initialized() };
+            }
+        }
+        panic!("COM initialization failed: {error:?}")
+    })
+}
 
 fn bytes_to_variant(bytes: &[u8]) -> Variant {
     Variant::Array(bytes.iter().copied().map(Variant::UI1).collect())
@@ -72,7 +85,7 @@ fn set_zone_color(data: &mut [u8], zone_index: usize, color: Option<Color>) {
 }
 
 thread_local! {
-    static COM_LIB: COMLibrary = COMLibrary::new().unwrap();
+    static COM_LIB: COMLibrary = safe_com_init();
 }
 
 fn execute_wmi_command(

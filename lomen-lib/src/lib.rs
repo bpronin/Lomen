@@ -3,9 +3,9 @@ use crate::color::{Color, ZoneColors};
 pub mod color;
 pub mod light_control;
 
-#[repr(C)]
 #[derive(Debug)]
-pub struct NumZoneColors {
+#[repr(C)]
+pub struct ColorsData {
     pub right: u64,
     pub center: u64,
     pub left: u64,
@@ -15,59 +15,58 @@ pub struct NumZoneColors {
 const NO_COLOR: u64 = 0xFFFFFFFF;
 
 #[unsafe(no_mangle)]
-pub extern "C" fn is_lighting_supported() -> bool {
+pub extern "stdcall" fn is_lighting_supported() -> bool {
     light_control::is_lighting_supported().unwrap()
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn get_keyboard_type() -> u8 {
+pub extern "stdcall" fn get_keyboard_type() -> u8 {
     light_control::get_keyboard_type().unwrap()
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn get_colors() -> NumZoneColors {
-    let colors = light_control::get_colors().unwrap();
-    NumZoneColors {
-        right: colors.right.unwrap().into(),
-        center: colors.center.unwrap().into(),
-        left: colors.left.unwrap().into(),
-        game: colors.game.unwrap().into(),
+pub extern "stdcall" fn get_colors(out_data: *mut ColorsData) {
+    if !out_data.is_null() {
+        let colors = light_control::get_colors().unwrap();
+        unsafe {
+            (*out_data).right = color_to_num(colors.right);
+            (*out_data).center = color_to_num(colors.center);
+            (*out_data).left = color_to_num(colors.left);
+            (*out_data).game = color_to_num(colors.game);
+        }
+    } else {
+        panic!("Out data pointer is null.");
     }
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn set_colors(colors: NumZoneColors) -> bool {
-    light_control::set_colors(ZoneColors {
-        right: color_from_num(colors.right),
-        center: color_from_num(colors.center),
-        left: color_from_num(colors.left),
-        game: color_from_num(colors.game),
-    })
-    .is_ok()
+pub extern "stdcall" fn set_colors(data: *const ColorsData) {
+    if !data.is_null() {
+        let colors = unsafe {
+            ZoneColors {
+                right: num_to_color((*data).right),
+                center: num_to_color((*data).center),
+                left: num_to_color((*data).left),
+                game: num_to_color((*data).game),
+            }
+        };
+        light_control::set_colors(colors).unwrap()
+    }else {
+        panic!("Data pointer is null.");
+    }
 }
 
-fn color_from_num(value: u64) -> Option<Color> {
-    if value == NO_COLOR {
+fn num_to_color(color: u64) -> Option<Color> {
+    if color == NO_COLOR {
         None
     } else {
-        Some(value.into())
+        Some(color.into())
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_set_colors() {
-        let colors = NumZoneColors{
-            right: NO_COLOR,
-            center: NO_COLOR,
-            left: 0x00FF00,
-            game: 0xFF0000,
-        };
-
-        assert_eq!(set_colors(colors), true);
+fn color_to_num(color: Option<Color>) -> u64 {
+    match color {
+        Some(color) => color.into(),
+        None => NO_COLOR,
     }
-
 }

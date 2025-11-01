@@ -3,39 +3,58 @@ use libloading::os::windows;
 use libloading::os::windows::Library;
 use windows::LOAD_WITH_ALTERED_SEARCH_PATH;
 
-/// A tool to control keyboard lighting of HP OMEN laptops.
-/// Use 6-digits RGB hex codes for Strings (e.g. #FF00FF).
-/// In PowerShell use String codes without '#' symbol or enquote them (e.g. FF00FF or "#FF00FF")
 #[derive(FromArgs)]
+#[argh(description = "Tool to control keyboard lighting of HP OMEN laptops.
+Use 6-digits RGB hex codes for colors (e.g. #FF00FF).
+In PowerShell enquote them (e.g. \"#FF00FF\") or use codes without '#' symbol (e.g. FF00FF)
+")]
 struct Args {
-    /// display keyboard lighting status information
-    #[argh(switch, short = 'i')]
+    #[argh(
+        switch,
+        short = 'i',
+        description = "display keyboard lighting status information"
+    )]
     info: bool,
 
-    /// set String for the first (right) zone of the keyboard
-    #[argh(option, short = 'r')]
+    #[argh(
+        option,
+        short = 'r',
+        description = "set color for the first (right) zone of the keyboard"
+    )]
     right: Option<String>,
 
-    /// set String for the second (center) zone of the keyboard
-    #[argh(option, short = 'c')]
+    #[argh(
+        option,
+        short = 'c',
+        description = "set color for the second (center) zone of the keyboard"
+    )]
     center: Option<String>,
 
-    /// set String for the third (left) zone of the keyboard
-    #[argh(option, short = 'l')]
+    #[argh(
+        option,
+        short = 'l',
+        description = "set color for the third (left) zone of the keyboard"
+    )]
     left: Option<String>,
 
-    /// set String for the forth (game) zone of the keyboard
-    #[argh(option, short = 'g')]
+    #[argh(
+        option,
+        short = 'g',
+        description = "set color for the forth (game) zone of the keyboard"
+    )]
     game: Option<String>,
 
-    /// set String for all zones of the keyboard except those specified specifically
-    #[argh(option, short = 'a')]
+    #[argh(
+        option,
+        short = 'a',
+        description = "set color for all zones of the keyboard except those specified specifically"
+    )]
     all: Option<String>,
 }
 
 #[repr(C)]
-#[derive(Debug)]
-pub struct NumZoneColors {
+#[derive(Debug, Default)]
+pub struct ColorsData {
     pub right: u64,
     pub center: u64,
     pub left: u64,
@@ -64,7 +83,7 @@ fn main() {
     {
         set_colors(
             &lib,
-            NumZoneColors {
+            ColorsData {
                 right: str_to_color(&args.right, &args.all),
                 center: str_to_color(&args.center, &args.all),
                 left: str_to_color(&args.left, &args.all),
@@ -93,7 +112,7 @@ fn print_info(lib: &Library) {
 
 fn is_lighting_supported(lib: &Library) -> bool {
     unsafe {
-        type Fn = extern "C" fn() -> bool;
+        type Fn = extern "stdcall" fn() -> bool;
         let fun = lib.get::<Fn>(b"is_lighting_supported\0").unwrap();
         fun()
     }
@@ -101,27 +120,29 @@ fn is_lighting_supported(lib: &Library) -> bool {
 
 fn get_keyboard_type(lib: &Library) -> u8 {
     unsafe {
-        type Fn = extern "C" fn() -> u8;
+        type Fn = extern "stdcall" fn() -> u8;
         let fun = lib.get::<Fn>(b"get_keyboard_type\0").unwrap();
         fun()
     }
 }
 
-fn get_colors(lib: &Library) -> NumZoneColors {
+fn get_colors(lib: &Library) -> ColorsData {
     unsafe {
-        type Fn = extern "C" fn() -> NumZoneColors;
+        type Fn = extern "stdcall" fn(*mut ColorsData);
         let fun = lib.get::<Fn>(b"get_colors\0").unwrap();
-        fun()
+
+        let mut colors = ColorsData::default();
+        fun(&mut colors);
+        colors
     }
 }
 
-fn set_colors(lib: &Library, colors: NumZoneColors) {
+fn set_colors(lib: &Library, colors: ColorsData) {
     unsafe {
-        type Fn = unsafe extern "C" fn(NumZoneColors) -> bool;
+        type Fn = extern "stdcall" fn(*const ColorsData);
         let fun = lib.get::<Fn>(b"set_colors\0").unwrap();
-        if !fun(colors) {
-            println!("Failed to set colors");
-        };
+
+        fun(&colors);
     }
 }
 
