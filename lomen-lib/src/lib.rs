@@ -1,11 +1,9 @@
-use crate::color::{Color, ZoneColors};
-
-pub mod color;
-pub mod light_control;
+use lomen_core::color::{Color, ZoneColors};
+use lomen_core::light_control;
 
 #[derive(Debug)]
 #[repr(C)]
-pub struct ColorsData {
+pub struct ColorsArg {
     pub right: u64,
     pub center: u64,
     pub left: u64,
@@ -25,7 +23,7 @@ pub extern "stdcall" fn get_keyboard_type() -> u8 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "stdcall" fn get_colors(out_data: *mut ColorsData) {
+pub extern "stdcall" fn get_colors(out_data: *mut ColorsArg) {
     if !out_data.is_null() {
         let colors = light_control::get_colors().unwrap();
         unsafe {
@@ -40,7 +38,7 @@ pub extern "stdcall" fn get_colors(out_data: *mut ColorsData) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "stdcall" fn set_colors(data: *const ColorsData) {
+pub extern "stdcall" fn set_colors(data: *const ColorsArg) {
     if !data.is_null() {
         let colors = unsafe {
             ZoneColors {

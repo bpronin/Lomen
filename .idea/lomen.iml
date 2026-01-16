@@ -6,6 +6,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src/wmi_control/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/lomen-cli/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/lomen-lib/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/lomen-core/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/src/wmi_control/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/lomen-cli/target" />

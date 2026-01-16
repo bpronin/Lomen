@@ -8,5 +8,4 @@ name = "lomen"
 crate-type = ["cdylib"]
 
 [dependencies]
-wmi = "0.17.3"
-windows = "0.62.2"
+lomen-core = {path = "../lomen-core"}

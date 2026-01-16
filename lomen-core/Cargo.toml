@@ -1,0 +1,8 @@
+[package]
+name = "lomen-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wmi = "0.17.3"
+windows = "0.62.2"
