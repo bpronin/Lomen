@@ -99,11 +99,11 @@ fn main() {
 }
 
 fn print_info(lib: &Library) {
-    println!("Lighting supported: {}", is_lighting_supported(lib));
     println!("Keyboard type: {}", get_keyboard_type(lib));
+    println!("Lighting supported: {}", is_lighting_supported(lib));
 
     let colors = get_colors(lib);
-    println!("Lighting Strings:");
+    println!("Zone colors:");
     println!("\t{:08}{:#08X}", "right", colors.right);
     println!("\t{:08}{:#08X}", "center", colors.center);
     println!("\t{:08}{:#08X}", "left", colors.left);
