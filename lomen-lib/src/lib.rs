@@ -48,7 +48,7 @@ pub extern "stdcall" fn set_colors(data: *const ColorsArg) {
                 game: num_to_color((*data).game),
             }
         };
-        light_control::set_colors(colors).unwrap()
+        light_control::set_colors(&colors).unwrap()
     }else {
         panic!("Data pointer is null.");
     }

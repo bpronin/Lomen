@@ -43,7 +43,7 @@ impl From<u64> for Color {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy, Default)]
 pub struct ZoneColors {
     pub right: Option<Color>,
     pub center: Option<Color>,
@@ -60,6 +60,28 @@ impl Display for ZoneColors {
             self.left.unwrap_or_default(),
             self.game.unwrap_or_default()
         ))
+    }
+}
+
+impl Into<[u64; 4]> for ZoneColors {
+    fn into(self) -> [u64; 4] {
+        [
+            self.right.unwrap_or_default().into(),
+            self.center.unwrap_or_default().into(),
+            self.left.unwrap_or_default().into(),
+            self.game.unwrap_or_default().into(),
+        ]
+    }
+}
+
+impl From<[u64; 4]> for ZoneColors {
+    fn from(value: [u64; 4]) -> Self {
+        Self {
+            right: Some(Color::from(value[0])),
+            center: Some(Color::from(value[1])),
+            left: Some(Color::from(value[2])),
+            game: Some(Color::from(value[3])),
+        }
     }
 }
 

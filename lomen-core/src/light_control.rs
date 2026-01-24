@@ -171,7 +171,7 @@ pub fn get_colors() -> Result<ZoneColors, Box<dyn Error>> {
 }
 
 /// Sets keyboard lighting colors
-pub fn set_colors(colors: ZoneColors) -> Result<(), Box<dyn Error>> {
+pub fn set_colors(colors: &ZoneColors) -> Result<(), Box<dyn Error>> {
     let mut result = execute_wmi_command(CMD_COMMON, CMD_TYPE_GET_ZONE_COLORS, None)?;
     let data = result.as_mut();
 
@@ -221,7 +221,7 @@ mod test {
             left: Color::from(0x00FF00).into(),
             game: None,
         };
-        let result = set_colors(colors);
+        let result = set_colors(&colors);
         assert!(result.is_ok());
     }
 }
