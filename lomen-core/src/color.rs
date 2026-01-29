@@ -18,11 +18,7 @@ impl Color {
 
 impl Into<u64> for Color {
     fn into(self) -> u64 {
-        let mut c: u64 = 0;
-        c = (c << 8) | self.r as u64;
-        c = (c << 8) | self.g as u64;
-        c = (c << 8) | self.b as u64;
-        c
+        ((self.r as u64) << 16) | ((self.g as u64) << 8) | (self.b as u64)
     }
 }
 
@@ -101,29 +97,6 @@ impl From<Vec<&str>> for ZoneColors {
     }
 }
 
-// impl Into<[u64; 4]> for ZoneColors {
-//     fn into(self) -> [u64; 4] {
-//         let parse = |c: Option<Color>| c.map(|c| c.into()).unwrap_or_default();
-//         [
-//             parse(self.right),
-//             parse(self.center),
-//             parse(self.left),
-//             parse(self.game),
-//         ]
-//     }
-// }
-//
-// impl From<[u64; 4]> for ZoneColors {
-//     fn from(value: [u64; 4]) -> Self {
-//         Self {
-//             right: Some(Color::from(value[0])),
-//             center: Some(Color::from(value[1])),
-//             left: Some(Color::from(value[2])),
-//             game: Some(Color::from(value[3])),
-//         }
-//     }
-// }
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -131,6 +104,14 @@ mod test {
     #[test]
     fn test_color_from_hex() {
         assert_eq!(Color::new(0xAA, 0xBB, 0xCC), Color::from(0xAABBCC));
+    }
+
+    #[test]
+    fn test_color_rgb() {
+        let c = Color::new(0xAA, 0xBB, 0xCC);
+        assert_eq!(0xAA, c.r);
+        assert_eq!(0xBB, c.g);
+        assert_eq!(0xCC, c.b);
     }
 
     #[test]
