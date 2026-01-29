@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 wmi = "0.18.0"
+log = "0.4.29"

@@ -1,6 +1,7 @@
 ﻿use crate::color::{Color, ZoneColors};
 use error::Error;
 use std::error;
+use log::debug;
 use wmi::{IWbemClassWrapper, Variant, WMIConnection};
 
 static SIGN: [u8; 4] = [83, 69, 67, 85];
@@ -76,16 +77,10 @@ fn execute_wmi_command(
     command_type: u32,
     data: Option<&[u8]>,
 ) -> Result<Vec<u8>, Box<dyn Error>> {
-    let wmi_con = WMIConnection::with_namespace_path(r"root\wmi")?;
-    _execute_wmi_command(wmi_con, command_code, command_type, data)
-}
+    debug!("Executing command: {:?}, type: {:?}", command_code, command_type);
 
-fn _execute_wmi_command(
-    wmi_con: WMIConnection,
-    command_code: u32,
-    command_type: u32,
-    data: Option<&[u8]>,
-) -> Result<Vec<u8>, Box<dyn Error>> {
+    let wmi_con = WMIConnection::with_namespace_path(r"root\wmi")?;
+
     let (payload, payload_size) = match data {
         Some(d) => {
             let i = d.len() as u32;
@@ -197,12 +192,13 @@ mod test {
     #[test]
     fn test_set_colors() {
         let colors = ZoneColors {
-            right: Color::from(0xFFFF00).into(),
-            center: Color::default().into(),
-            left: Color::from(0x00FF00).into(),
+            right: Some(Color::from(0xFFFF00)),
+            center: None,
+            left: Some(Color::from(0x00FF00)),
             game: None,
         };
         let result = set_colors(&colors);
+
         assert!(result.is_ok());
     }
 }
