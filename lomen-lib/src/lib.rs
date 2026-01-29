@@ -1,4 +1,4 @@
-use lomen_core::color::{Color, ZoneColors};
+use lomen_core::color::{Color, LightingColors};
 use lomen_core::light_control;
 
 #[derive(Debug)]
@@ -41,7 +41,7 @@ pub extern "stdcall" fn get_colors(out_data: *mut ColorsArg) {
 pub extern "stdcall" fn set_colors(data: *const ColorsArg) {
     if !data.is_null() {
         let colors = unsafe {
-            ZoneColors {
+            LightingColors {
                 right: num_to_color((*data).right),
                 center: num_to_color((*data).center),
                 left: num_to_color((*data).left),

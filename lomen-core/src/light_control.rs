@@ -1,7 +1,7 @@
-﻿use crate::color::{Color, ZoneColors};
+﻿use crate::color::{Color, LightingColors};
 use error::Error;
-use std::error;
 use log::debug;
+use std::error;
 use wmi::{IWbemClassWrapper, Variant, WMIConnection};
 
 static SIGN: [u8; 4] = [83, 69, 67, 85];
@@ -134,11 +134,11 @@ pub fn is_lighting_supported() -> Result<bool, Box<dyn Error>> {
 }
 
 /// Returns current keyboard lighting colors
-pub fn get_colors() -> Result<ZoneColors, Box<dyn Error>> {
+pub fn get_colors() -> Result<LightingColors, Box<dyn Error>> {
     let result = execute_wmi_command(CMD_COMMON, CMD_TYPE_GET_ZONE_COLORS, None)?;
     let data = result.as_ref();
 
-    Ok(ZoneColors {
+    Ok(LightingColors {
         right: get_zone_color(data, RIGHT_ZONE_INDEX).into(),
         center: get_zone_color(data, CENTER_ZONE_INDEX).into(),
         left: get_zone_color(data, LEFT_ZONE_INDEX).into(),
@@ -147,7 +147,7 @@ pub fn get_colors() -> Result<ZoneColors, Box<dyn Error>> {
 }
 
 /// Sets keyboard lighting colors
-pub fn set_colors(colors: &ZoneColors) -> Result<(), Box<dyn Error>> {
+pub fn set_colors(colors: &LightingColors) -> Result<(), Box<dyn Error>> {
     let mut result = execute_wmi_command(CMD_COMMON, CMD_TYPE_GET_ZONE_COLORS, None)?;
     let data = result.as_mut();
 
@@ -186,12 +186,12 @@ mod test {
         let result = get_colors();
         assert!(result.is_ok());
 
-        println!("Colors: {}", result.unwrap());
+        println!("Colors: {:?}", result);
     }
 
     #[test]
     fn test_set_colors() {
-        let colors = ZoneColors {
+        let colors = LightingColors {
             right: Some(Color::from(0xFFFF00)),
             center: None,
             left: Some(Color::from(0x00FF00)),
