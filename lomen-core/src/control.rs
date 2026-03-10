@@ -1,7 +1,10 @@
-﻿use crate::color::{Color, LightingColors};
+use crate::color::{Color, LightingColors};
+use crate::transition::LightingColorsTransition;
 use error::Error;
 use log::debug;
 use std::error;
+use std::thread::sleep;
+use std::time::Duration;
 use wmi::{IWbemClassWrapper, Variant, WMIConnection};
 
 static SIGN: [u8; 4] = [83, 69, 67, 85];
@@ -161,6 +164,23 @@ pub fn set_colors(colors: &LightingColors) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Smoothly changes keyboard lighting colors
+pub fn transit_colors(
+    to_colors: &LightingColors,
+    duration: Duration,
+    fps: u8,
+) -> Result<(), Box<dyn Error>> {
+    let transition = LightingColorsTransition::new(get_colors()?, to_colors.clone(), duration);
+    let delay = duration.div_f32(fps as f32);
+
+    for colors in transition {
+        set_colors(&colors)?;
+        sleep(delay);
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -198,6 +218,20 @@ mod test {
             game: None,
         };
         let result = set_colors(&colors);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_transit_colors() {
+        let colors = LightingColors {
+            right: Some(Color::from(0x0000FF)),
+            center: Some(Color::from(0x00FFFF)),
+            left: Some(Color::from(0xFFFF00)),
+            game: None,
+        };
+
+        let result = transit_colors(&colors, Duration::from_secs(1), 50);
 
         assert!(result.is_ok());
     }

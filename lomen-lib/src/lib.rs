@@ -1,5 +1,6 @@
 use lomen_core::color::{Color, LightingColors};
-use lomen_core::light_control;
+use lomen_core::control;
+use std::time::Duration;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -14,18 +15,18 @@ const NO_COLOR: u64 = 0xFFFFFFFF;
 
 #[unsafe(no_mangle)]
 pub extern "stdcall" fn is_lighting_supported() -> bool {
-    light_control::is_lighting_supported().unwrap()
+    control::is_lighting_supported().unwrap()
 }
 
 #[unsafe(no_mangle)]
 pub extern "stdcall" fn get_keyboard_type() -> u8 {
-    light_control::get_keyboard_type().unwrap()
+    control::get_keyboard_type().unwrap()
 }
 
 #[unsafe(no_mangle)]
 pub extern "stdcall" fn get_colors(out_data: *mut ColorsArg) {
     if !out_data.is_null() {
-        let colors = light_control::get_colors().unwrap();
+        let colors = control::get_colors().unwrap();
         unsafe {
             (*out_data).right = color_to_num(colors.right);
             (*out_data).center = color_to_num(colors.center);
@@ -39,19 +40,12 @@ pub extern "stdcall" fn get_colors(out_data: *mut ColorsArg) {
 
 #[unsafe(no_mangle)]
 pub extern "stdcall" fn set_colors(data: *const ColorsArg) {
-    if !data.is_null() {
-        let colors = unsafe {
-            LightingColors {
-                right: num_to_color((*data).right),
-                center: num_to_color((*data).center),
-                left: num_to_color((*data).left),
-                game: num_to_color((*data).game),
-            }
-        };
-        light_control::set_colors(&colors).unwrap()
-    }else {
-        panic!("Data pointer is null.");
-    }
+    control::set_colors(&arg_to_colors(data)).unwrap()
+}
+
+#[unsafe(no_mangle)]
+pub extern "stdcall" fn transit_colors(data: *const ColorsArg, duration: u64, fps: u8) {
+    control::transit_colors(&arg_to_colors(data), Duration::from_millis(duration), fps).unwrap()
 }
 
 fn num_to_color(color: u64) -> Option<Color> {
@@ -59,6 +53,21 @@ fn num_to_color(color: u64) -> Option<Color> {
         None
     } else {
         Some(color.into())
+    }
+}
+
+fn arg_to_colors(data: *const ColorsArg) -> LightingColors {
+    if !data.is_null() {
+        unsafe {
+            LightingColors {
+                right: num_to_color((*data).right),
+                center: num_to_color((*data).center),
+                left: num_to_color((*data).left),
+                game: num_to_color((*data).game),
+            }
+        }
+    } else {
+        panic!("Data pointer is null.");
     }
 }
 

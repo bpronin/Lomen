@@ -1,4 +1,4 @@
-﻿use embed_manifest::manifest::ExecutionLevel;
+use embed_manifest::manifest::ExecutionLevel;
 use embed_manifest::{embed_manifest, new_manifest};
 
 fn main() {

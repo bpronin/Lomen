@@ -50,6 +50,13 @@ struct Args {
         description = "set color for all zones of the keyboard except those specified specifically"
     )]
     all: Option<String>,
+
+    #[argh(
+        switch,
+        short = 's',
+        description = "change color smoothly instead of instantly"
+    )]
+    smooth: bool,
 }
 
 #[repr(C)]
@@ -81,15 +88,17 @@ fn main() {
         || args.game.is_some()
         || args.all.is_some()
     {
-        set_colors(
-            &lib,
-            ColorsData {
-                right: str_to_color(&args.right, &args.all),
-                center: str_to_color(&args.center, &args.all),
-                left: str_to_color(&args.left, &args.all),
-                game: str_to_color(&args.game, &args.all),
-            },
-        );
+        let data = ColorsData {
+            right: str_to_color(&args.right, &args.all),
+            center: str_to_color(&args.center, &args.all),
+            left: str_to_color(&args.left, &args.all),
+            game: str_to_color(&args.game, &args.all),
+        };
+        if args.smooth {
+            set_colors_smooth(&lib, data)
+        } else {
+            set_colors(&lib, data)
+        }
     }
 
     /* after all to show modified status */
@@ -111,42 +120,44 @@ fn print_info(lib: &Library) {
 }
 
 fn is_lighting_supported(lib: &Library) -> bool {
-    unsafe {
-        type Fn = extern "stdcall" fn() -> bool;
-        let fun = lib.get::<Fn>(b"is_lighting_supported\0").unwrap();
-        fun()
-    }
+    type Fn = extern "stdcall" fn() -> bool;
+    let fun = unsafe { lib.get::<Fn>(b"is_lighting_supported\0") }.unwrap();
+    fun()
 }
 
 fn get_keyboard_type(lib: &Library) -> u8 {
-    unsafe {
-        type Fn = extern "stdcall" fn() -> u8;
-        let fun = lib.get::<Fn>(b"get_keyboard_type\0").unwrap();
-        fun()
-    }
+    type Fn = extern "stdcall" fn() -> u8;
+    let fun = unsafe { lib.get::<Fn>(b"get_keyboard_type\0") }.unwrap();
+    fun()
 }
 
 fn get_colors(lib: &Library) -> ColorsData {
-    unsafe {
-        type Fn = extern "stdcall" fn(*mut ColorsData);
-        let fun = lib.get::<Fn>(b"get_colors\0").unwrap();
+    type Fn = extern "stdcall" fn(*mut ColorsData);
+    let fun = unsafe { lib.get::<Fn>(b"get_colors\0") }.unwrap();
 
-        let mut colors = ColorsData::default();
-        fun(&mut colors);
-        colors
-    }
+    let mut colors = ColorsData::default();
+    fun(&mut colors);
+    colors
 }
 
 fn set_colors(lib: &Library, colors: ColorsData) {
-    unsafe {
-        type Fn = extern "stdcall" fn(*const ColorsData);
-        let fun = lib.get::<Fn>(b"set_colors\0").unwrap();
+    type Fn = extern "stdcall" fn(*const ColorsData);
+    let fun = unsafe { lib.get::<Fn>(b"set_colors\0") }.unwrap();
+    fun(&colors);
+}
 
-        fun(&colors);
-    }
+fn set_colors_smooth(lib: &Library, colors: ColorsData) {
+    type Fn = extern "stdcall" fn(*const ColorsData, u64, u8);
+    let fun = unsafe { lib.get::<Fn>(b"transit_colors\0") }.unwrap();
+    fun(&colors, 1000, 50);
 }
 
 fn str_to_color(color: &Option<String>, default_color: &Option<String>) -> u64 {
+    let parse_hex_color = |s: &str| -> u64 {
+        let x = s.strip_prefix('#').unwrap_or(s);
+        u64::from_str_radix(x, 16).expect(format!("Invalid color code: {}", s).as_str())
+    };
+
     match color {
         Some(it) => parse_hex_color(it),
         None => match default_color {
@@ -154,9 +165,4 @@ fn str_to_color(color: &Option<String>, default_color: &Option<String>) -> u64 {
             None => NO_COLOR,
         },
     }
-}
-
-fn parse_hex_color(s: &str) -> u64 {
-    let x = s.strip_prefix('#').unwrap_or(s);
-    u64::from_str_radix(x, 16).expect(format!("Invalid color code: {}", s).as_str())
 }
